@@ -27,7 +27,17 @@ function requireEnv(name: string): string {
     throw new Error(`Missing ${name} environment variable.`);
   }
 
+  process.env[name] = value;
+
   return value;
+}
+
+function normalizeOptionalEnv(name: string) {
+  const value = process.env[name]?.trim();
+
+  if (value) {
+    process.env[name] = value;
+  }
 }
 
 function getFramesPerLambda(): number {
@@ -208,6 +218,7 @@ export async function renderVideoOnLambda(
   try {
     requireEnv("AWS_ACCESS_KEY_ID");
     requireEnv("AWS_SECRET_ACCESS_KEY");
+    normalizeOptionalEnv("AWS_SESSION_TOKEN");
 
     const region = requireEnv("REMOTION_AWS_REGION") as AwsRegion;
     const functionName = requireEnv("REMOTION_AWS_FUNCTION_NAME");
