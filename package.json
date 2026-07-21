@@ -3,15 +3,24 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@remotion/cli": "^4.0.490",
+    "@remotion/lambda": "^4.0.490",
+    "@remotion/media-parser": "4.0.490",
+    "@remotion/media-utils": "4.0.490",
+    "@supabase/supabase-js": "^2.110.7",
     "next": "16.2.10",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "openai": "^6.48.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "remotion": "^4.0.490",
+    "replicate": "^1.4.0",
+    "zod": "4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
