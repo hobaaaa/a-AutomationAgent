@@ -81,7 +81,7 @@ For the normal publishing cadence:
 DAILY_SCHEDULE_TIME_ZONE=America/New_York
 DAILY_FIRST_RUN_HOUR_LOCAL=11
 DAILY_FIRST_RUN_MINUTE_LOCAL=0
-DAILY_CHANNEL_SPACING_MINUTES=60
+DAILY_CHANNEL_SPACING_MINUTES=0
 ```
 
-This creates three daily videos scheduled at 11:00, 12:00, and 13:00 New York time.
+This creates three daily videos scheduled for the same 11:00 New York slot. The process cron should run every 15 minutes and the app processes only one due video per run, so the videos are generated one by one instead of all at once.
