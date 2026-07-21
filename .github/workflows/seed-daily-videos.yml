@@ -15,10 +15,17 @@ jobs:
     steps:
       - name: Call seed endpoint
         run: |
-          curl --fail --show-error --silent \
+          echo "Calling $APP_BASE_URL/api/cron/seed"
+          response_file="$(mktemp)"
+          status_code="$(curl --show-error --silent \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
             --request GET \
             --header "Authorization: Bearer $CRON_SECRET" \
-            "$APP_BASE_URL/api/cron/seed?timeZone=Europe/Istanbul&firstRunHourLocal=15&firstRunMinuteLocal=15&channelSpacingMinutes=60"
+            "$APP_BASE_URL/api/cron/seed?timeZone=Europe/Istanbul&firstRunHourLocal=15&firstRunMinuteLocal=15&channelSpacingMinutes=60")"
+          echo "HTTP status: $status_code"
+          cat "$response_file"
+          test "$status_code" -ge 200 -a "$status_code" -lt 300
         env:
           APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
