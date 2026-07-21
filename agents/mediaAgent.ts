@@ -4,7 +4,8 @@ import OpenAI from "openai";
 import Replicate from "replicate";
 
 const ASSETS_BUCKET = "short-assets";
-const REPLICATE_MODEL = "black-forest-labs/flux-schnell";
+const DEFAULT_REPLICATE_IMAGE_MODEL =
+  "black-forest-labs/flux-schnell:c846a69991daf4c0e5d016514849d14ee5b2e6846ce6b9d6f21369e564cfe51e";
 const REPLICATE_PREDICTION_DELAY_MS = 11_000;
 const REPLICATE_MAX_ATTEMPTS = 3;
 const DEFAULT_TTS_SPEED = 0.88;
@@ -22,6 +23,8 @@ type VisualScene = {
   id: number;
   visual_prompt: string;
 };
+
+type ReplicateModelIdentifier = `${string}/${string}` | `${string}/${string}:${string}`;
 
 export type GeneratedSpeech = {
   audioUrl: string;
@@ -67,6 +70,16 @@ function isRateLimitError(error: unknown): boolean {
   return message.includes("429") || message.includes("rate limit");
 }
 
+function getReplicateImageModel(): ReplicateModelIdentifier {
+  const model = process.env.REPLICATE_IMAGE_MODEL || DEFAULT_REPLICATE_IMAGE_MODEL;
+
+  if (!model.includes("/")) {
+    throw new Error("REPLICATE_IMAGE_MODEL must use owner/model or owner/model:version format.");
+  }
+
+  return model as ReplicateModelIdentifier;
+}
+
 function isTransientReplicateError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
 
@@ -75,6 +88,7 @@ function isTransientReplicateError(error: unknown): boolean {
     message.includes("Prediction failed") ||
     message.includes("unexpected error handling prediction") ||
     message.includes("E9828") ||
+    message.includes("No adapter found for model") ||
     message.includes("500") ||
     message.includes("502") ||
     message.includes("503") ||
@@ -189,13 +203,19 @@ export async function isAudioUrlAvailable(audioUrl: string): Promise<boolean> {
 }
 
 async function runReplicateImagePrediction(scene: VisualScene) {
+  const model = getReplicateImageModel();
+
   for (let attempt = 1; attempt <= REPLICATE_MAX_ATTEMPTS; attempt += 1) {
     try {
-      return await replicate.run(REPLICATE_MODEL, {
+      return await replicate.run(model, {
         input: {
           prompt: scene.visual_prompt,
+          go_fast: true,
+          num_outputs: 1,
+          num_inference_steps: 4,
           aspect_ratio: "9:16",
           output_format: "jpg",
+          output_quality: 90,
         },
       });
     } catch (error) {
@@ -214,6 +234,7 @@ async function runReplicateImagePrediction(scene: VisualScene) {
 
       console.warn("Replicate image generation failed, retrying", {
         sceneId: scene.id,
+        model,
         attempt,
         waitMs,
       });

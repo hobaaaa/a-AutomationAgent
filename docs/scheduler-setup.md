@@ -72,6 +72,7 @@ Add every runtime variable used for generation and publishing to GitHub reposito
 - `REMOTION_FRAMES_PER_LAMBDA`
 - `REMOTION_SERVE_URL`
 - `REPLICATE_API_TOKEN`
+- `REPLICATE_IMAGE_MODEL` optional; defaults to the pinned Flux Schnell version
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `TTS_SPEED`
 

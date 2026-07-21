@@ -29,16 +29,17 @@ jobs:
       REMOTION_FRAMES_PER_LAMBDA: ${{ secrets.REMOTION_FRAMES_PER_LAMBDA }}
       REMOTION_SERVE_URL: ${{ secrets.REMOTION_SERVE_URL }}
       REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+      REPLICATE_IMAGE_MODEL: ${{ secrets.REPLICATE_IMAGE_MODEL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       TTS_SPEED: ${{ secrets.TTS_SPEED }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
