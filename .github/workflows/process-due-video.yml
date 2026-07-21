@@ -1,11 +1,8 @@
 name: Process due video
 
 on:
-  push:
-    branches:
-      - main
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 concurrency:
@@ -15,21 +12,79 @@ concurrency:
 jobs:
   process:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      DAILY_CHANNELS_JSON: ${{ secrets.DAILY_CHANNELS_JSON }}
+      DAILY_CHANNEL_SPACING_MINUTES: ${{ secrets.DAILY_CHANNEL_SPACING_MINUTES }}
+      DAILY_FIRST_RUN_HOUR_LOCAL: ${{ secrets.DAILY_FIRST_RUN_HOUR_LOCAL }}
+      DAILY_FIRST_RUN_MINUTE_LOCAL: ${{ secrets.DAILY_FIRST_RUN_MINUTE_LOCAL }}
+      DAILY_SCHEDULE_TIME_ZONE: ${{ secrets.DAILY_SCHEDULE_TIME_ZONE }}
+      MAKE_PUBLISH_WEBHOOK_URL: ${{ secrets.MAKE_PUBLISH_WEBHOOK_URL }}
+      METRICS_INGEST_SECRET: ${{ secrets.METRICS_INGEST_SECRET }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      REMOTION_AWS_FUNCTION_NAME: ${{ secrets.REMOTION_AWS_FUNCTION_NAME }}
+      REMOTION_AWS_REGION: ${{ secrets.REMOTION_AWS_REGION }}
+      REMOTION_FRAMES_PER_LAMBDA: ${{ secrets.REMOTION_FRAMES_PER_LAMBDA }}
+      REMOTION_SERVE_URL: ${{ secrets.REMOTION_SERVE_URL }}
+      REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      TTS_SPEED: ${{ secrets.TTS_SPEED }}
     steps:
-      - name: Call cron endpoint
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Start local Next server
         run: |
-          echo "Calling $APP_BASE_URL/api/cron"
+          npm run start > next-server.log 2>&1 &
+          echo $! > next-server.pid
+
+      - name: Wait for local server
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl --silent --fail http://127.0.0.1:3000 > /dev/null; then
+              echo "Local server is ready."
+              exit 0
+            fi
+
+            echo "Waiting for local server... attempt $attempt"
+            sleep 2
+          done
+
+          echo "Local server did not become ready."
+          cat next-server.log
+          exit 1
+
+      - name: Call local cron endpoint
+        run: |
+          echo "Calling local /api/cron"
           response_file="$(mktemp)"
           status_code="$(curl --show-error --silent \
             --output "$response_file" \
             --write-out "%{http_code}" \
             --request GET \
+            --max-time 3300 \
             --header "Authorization: Bearer $CRON_SECRET" \
-            "$APP_BASE_URL/api/cron")"
+            "http://127.0.0.1:3000/api/cron")"
           echo "HTTP status: $status_code"
           cat "$response_file"
           test "$status_code" -ge 200 -a "$status_code" -lt 300
-        env:
-          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+
+      - name: Print server logs on failure
+        if: failure()
+        run: cat next-server.log
