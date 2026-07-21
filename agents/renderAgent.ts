@@ -114,6 +114,12 @@ async function uploadRenderedVideo(
       return data.publicUrl;
     }
 
+    if (isSupabaseObjectSizeLimitError(error.message)) {
+      throw new Error(
+        `Supabase upload failed for ${videoPath}: ${error.message}`
+      );
+    }
+
     if (attempt === SUPABASE_UPLOAD_MAX_ATTEMPTS) {
       throw new Error(
         `Supabase upload failed for ${videoPath}: ${error.message}`
@@ -155,6 +161,12 @@ function isTransientLambdaError(error: unknown): boolean {
     message.includes("503") ||
     message.includes("504")
   );
+}
+
+function isSupabaseObjectSizeLimitError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return message.includes("The object exceeded the maximum allowed size");
 }
 
 async function startRenderOnLambda({
@@ -314,6 +326,18 @@ export async function renderVideoOnLambda(
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
 
+            if (isSupabaseObjectSizeLimitError(message)) {
+              console.warn(
+                "Supabase rendered video upload exceeded size limit; using Remotion output URL",
+                {
+                  videoId,
+                  outputFile: progress.outputFile,
+                }
+              );
+
+              return progress.outputFile;
+            }
+
             throw new Error(
               `${message} ${REMOTION_OUTPUT_URL_MARKER} ${progress.outputFile}`
             );
@@ -342,5 +366,21 @@ export async function uploadExistingRenderedVideo(
 ): Promise<string> {
   const videoBuffer = await downloadRenderedVideo(outputFile);
 
-  return uploadRenderedVideo(videoId, videoBuffer);
+  try {
+    return await uploadRenderedVideo(videoId, videoBuffer);
+  } catch (error) {
+    if (isSupabaseObjectSizeLimitError(error)) {
+      console.warn(
+        "Existing Remotion output exceeded Supabase size limit; using Remotion output URL",
+        {
+          videoId,
+          outputFile,
+        }
+      );
+
+      return outputFile;
+    }
+
+    throw error;
+  }
 }
