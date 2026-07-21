@@ -6,6 +6,7 @@ export const runtime = "nodejs";
 
 const DEFAULT_SCHEDULE_TIME_ZONE = "America/New_York";
 const DEFAULT_FIRST_RUN_HOUR_LOCAL = 11;
+const DEFAULT_FIRST_RUN_MINUTE_LOCAL = 0;
 const DEFAULT_CHANNEL_SPACING_MINUTES = 60;
 
 function getIntegerEnv({
@@ -44,6 +45,58 @@ function getUtcDayStartFromDate(date: Date) {
 
 function getScheduleTimeZone() {
   return process.env.DAILY_SCHEDULE_TIME_ZONE || DEFAULT_SCHEDULE_TIME_ZONE;
+}
+
+function getScheduleConfig(request: Request) {
+  const requestUrl = new URL(request.url);
+  const timeZone =
+    requestUrl.searchParams.get("timeZone") || getScheduleTimeZone();
+  const firstRunHourLocal = requestUrl.searchParams.has("firstRunHourLocal")
+    ? getIntegerQueryParam(requestUrl, "firstRunHourLocal")
+    : getIntegerEnv({
+        defaultValue: DEFAULT_FIRST_RUN_HOUR_LOCAL,
+        name: "DAILY_FIRST_RUN_HOUR_LOCAL",
+      });
+  const firstRunMinuteLocal = requestUrl.searchParams.has("firstRunMinuteLocal")
+    ? getIntegerQueryParam(requestUrl, "firstRunMinuteLocal")
+    : getIntegerEnv({
+        defaultValue: DEFAULT_FIRST_RUN_MINUTE_LOCAL,
+        name: "DAILY_FIRST_RUN_MINUTE_LOCAL",
+      });
+  const channelSpacingMinutes = requestUrl.searchParams.has(
+    "channelSpacingMinutes"
+  )
+    ? getIntegerQueryParam(requestUrl, "channelSpacingMinutes")
+    : getIntegerEnv({
+        defaultValue: DEFAULT_CHANNEL_SPACING_MINUTES,
+        name: "DAILY_CHANNEL_SPACING_MINUTES",
+      });
+
+  if (firstRunHourLocal > 23) {
+    throw new Error("firstRunHourLocal must be between 0 and 23.");
+  }
+
+  if (firstRunMinuteLocal > 59) {
+    throw new Error("firstRunMinuteLocal must be between 0 and 59.");
+  }
+
+  return {
+    channelSpacingMinutes,
+    firstRunHourLocal,
+    firstRunMinuteLocal,
+    timeZone,
+  };
+}
+
+function getIntegerQueryParam(requestUrl: URL, name: string) {
+  const rawValue = requestUrl.searchParams.get(name);
+  const value = Number(rawValue);
+
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error(`${name} must be a non-negative integer.`);
+  }
+
+  return value;
 }
 
 function getTimeZoneParts(date: Date, timeZone: string) {
@@ -115,21 +168,21 @@ function getUtcDateForTimeZoneLocalTime({
   return utcDate;
 }
 
-function getScheduledAt(index: number) {
-  const timeZone = getScheduleTimeZone();
-  const firstRunHourLocal = getIntegerEnv({
-    defaultValue: DEFAULT_FIRST_RUN_HOUR_LOCAL,
-    name: "DAILY_FIRST_RUN_HOUR_LOCAL",
-  });
-  const channelSpacingMinutes = getIntegerEnv({
-    defaultValue: DEFAULT_CHANNEL_SPACING_MINUTES,
-    name: "DAILY_CHANNEL_SPACING_MINUTES",
-  });
+function getScheduledAt(
+  index: number,
+  scheduleConfig: ReturnType<typeof getScheduleConfig>
+) {
+  const {
+    channelSpacingMinutes,
+    firstRunHourLocal,
+    firstRunMinuteLocal,
+    timeZone,
+  } = scheduleConfig;
   const localToday = getTimeZoneParts(new Date(), timeZone);
   const scheduledAt = getUtcDateForTimeZoneLocalTime({
     day: localToday.day,
     hour: firstRunHourLocal,
-    minute: index * channelSpacingMinutes,
+    minute: firstRunMinuteLocal + index * channelSpacingMinutes,
     month: localToday.month,
     timeZone,
     year: localToday.year,
@@ -160,6 +213,7 @@ export async function GET(request: Request) {
     assertSupabaseAdminEnv();
 
     const channels = getDailyChannels();
+    const scheduleConfig = getScheduleConfig(request);
     const dayStart = getUtcDayStart();
     const { data, error } = await supabaseAdmin
       .from("videos")
@@ -185,7 +239,7 @@ export async function GET(request: Request) {
         target: channels.length,
         existingTodayCount: existingChannelKeys.size,
         created: 0,
-        scheduleTimeZone: getScheduleTimeZone(),
+        scheduleTimeZone: scheduleConfig.timeZone,
         channels: [],
       });
     }
@@ -195,7 +249,8 @@ export async function GET(request: Request) {
       channel_name: channel.name,
       niche: channel.niche,
       scheduled_at: getScheduledAt(
-        channels.findIndex((candidate) => candidate.key === channel.key)
+        channels.findIndex((candidate) => candidate.key === channel.key),
+        scheduleConfig
       ),
       status: "pending",
       retry_count: 0,
@@ -213,7 +268,10 @@ export async function GET(request: Request) {
       target: channels.length,
       existingTodayCount: existingChannelKeys.size,
       created: rows.length,
-      scheduleTimeZone: getScheduleTimeZone(),
+      scheduleTimeZone: scheduleConfig.timeZone,
+      firstRunHourLocal: scheduleConfig.firstRunHourLocal,
+      firstRunMinuteLocal: scheduleConfig.firstRunMinuteLocal,
+      channelSpacingMinutes: scheduleConfig.channelSpacingMinutes,
       channels: rows.map((row) => ({
         key: row.channel_key,
         name: row.channel_name,
