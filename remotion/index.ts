@@ -74,7 +74,9 @@ const RemotionRoot = () => {
     defaultProps: {
       audioDurationSeconds: null,
       audioUrl: "",
+      backgroundMusicUrl: null,
       images: [],
+      musicVolume: 0.1,
       scenes: [],
     },
   });

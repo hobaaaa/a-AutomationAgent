@@ -18,10 +18,13 @@ export type ShortsVideoProps = {
   audioDurationSeconds?: number | null;
   audioUrl: string;
   images: string[];
+  musicVolume?: number;
+  backgroundMusicUrl?: string | null;
   scenes: ShortsScene[];
 };
 
 const FALLBACK_HOOK_DURATION_SECONDS = 8;
+const DEFAULT_MUSIC_VOLUME = 0.1;
 
 function getSceneDurations({
   imageCount,
@@ -121,7 +124,9 @@ function getSceneFrameDuration({
 
 export const ShortsVideo = ({
   audioUrl,
+  backgroundMusicUrl,
   images,
+  musicVolume = DEFAULT_MUSIC_VOLUME,
   scenes,
 }: ShortsVideoProps) => {
   const frame = useCurrentFrame();
@@ -150,10 +155,35 @@ export const ShortsVideo = ({
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
+  const panX = interpolate(
+    localFrame,
+    [0, sceneFrameDuration],
+    [activeIndex % 2 === 0 ? -2 : 2, activeIndex % 2 === 0 ? 2 : -2],
+    {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    }
+  );
+  const panY = interpolate(
+    localFrame,
+    [0, sceneFrameDuration],
+    [activeIndex % 3 === 0 ? -1.5 : 1.5, activeIndex % 3 === 0 ? 1.5 : -1.5],
+    {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    }
+  );
+  const sceneFlashOpacity = interpolate(localFrame, [0, 4, 10], [0.16, 0.06, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
 
   return (
     <AbsoluteFill style={{ backgroundColor: "black", overflow: "hidden" }}>
       <Audio src={audioUrl} />
+      {backgroundMusicUrl ? (
+        <Audio src={backgroundMusicUrl} volume={musicVolume} />
+      ) : null}
 
       {activeImage ? (
         <Img
@@ -162,10 +192,25 @@ export const ShortsVideo = ({
             width: "100%",
             height: "100%",
             objectFit: "cover",
-            transform: `scale(${scale})`,
+            transform: `scale(${scale}) translate3d(${panX}%, ${panY}%, 0)`,
           }}
         />
       ) : null}
+
+      <AbsoluteFill
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(0,0,0,0.2), rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.35))",
+        }}
+      />
+
+      <AbsoluteFill
+        style={{
+          backgroundColor: "#facc15",
+          mixBlendMode: "screen",
+          opacity: sceneFlashOpacity,
+        }}
+      />
 
       <AbsoluteFill
         style={{

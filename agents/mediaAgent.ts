@@ -8,7 +8,7 @@ const DEFAULT_REPLICATE_IMAGE_MODEL =
   "black-forest-labs/flux-schnell:c846a69991daf4c0e5d016514849d14ee5b2e6846ce6b9d6f21369e564cfe51e";
 const REPLICATE_PREDICTION_DELAY_MS = 11_000;
 const REPLICATE_MAX_ATTEMPTS = 3;
-const DEFAULT_TTS_SPEED = 0.88;
+const DEFAULT_TTS_SPEED = 0.96;
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY?.trim() || "placeholder-openai-api-key",
@@ -260,7 +260,7 @@ export async function generateSpeech(
       voice: "echo",
       input: text,
       instructions:
-        "Use a high-energy English Shorts creator voice: upbeat, confident, punchy, and expressive. Keep strong momentum, emphasize key words naturally, and avoid sounding calm, sleepy, monotone, or rushed.",
+        "Use a high-energy English Shorts creator voice: upbeat, confident, punchy, and expressive. Keep strong momentum, add urgency and curiosity, emphasize key words naturally, and avoid sounding calm, sleepy, flat, monotone, or robotic. Speak with creator-style energy without becoming messy or hard to understand.",
       response_format: "mp3",
       speed: getTtsSpeed(),
     });

@@ -119,6 +119,32 @@ function getValidDurationSeconds(value: unknown): number | null {
   return duration;
 }
 
+function getOptionalNumberEnv({
+  defaultValue,
+  max,
+  min,
+  name,
+}: {
+  defaultValue: number;
+  max: number;
+  min: number;
+  name: string;
+}) {
+  const rawValue = process.env[name]?.trim();
+
+  if (!rawValue) {
+    return defaultValue;
+  }
+
+  const value = Number(rawValue);
+
+  if (!Number.isFinite(value) || value < min || value > max) {
+    throw new Error(`${name} must be a number between ${min} and ${max}.`);
+  }
+
+  return value;
+}
+
 function getExistingRemotionOutputUrl(errorMessage?: string | null) {
   if (!errorMessage) {
     return null;
@@ -327,7 +353,15 @@ export async function GET(request: Request) {
         mp4Url = await renderVideoOnLambda(videoId, {
           audioUrl,
           audioDurationSeconds,
+          backgroundMusicUrl:
+            process.env.BACKGROUND_MUSIC_URL?.trim() || null,
           images: imageUrls,
+          musicVolume: getOptionalNumberEnv({
+            defaultValue: 0.1,
+            max: 1,
+            min: 0,
+            name: "BACKGROUND_MUSIC_VOLUME",
+          }),
           scenes: scriptJSON.scenes,
         });
       }

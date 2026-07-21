@@ -57,6 +57,8 @@ Add every runtime variable used for generation and publishing to GitHub reposito
 - `APP_BASE_URL`
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
+- `BACKGROUND_MUSIC_URL` optional; use a direct public MP3 URL
+- `BACKGROUND_MUSIC_VOLUME` optional; defaults to `0.1`
 - `CRON_SECRET`
 - `DAILY_CHANNELS_JSON` if overriding default channels
 - `DAILY_CHANNEL_SPACING_MINUTES`
