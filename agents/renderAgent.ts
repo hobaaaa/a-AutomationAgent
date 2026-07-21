@@ -21,7 +21,7 @@ const FPS = 30;
 export const REMOTION_OUTPUT_URL_MARKER = "Remotion output URL:";
 
 function requireEnv(name: string): string {
-  const value = process.env[name];
+  const value = process.env[name]?.trim();
 
   if (!value) {
     throw new Error(`Missing ${name} environment variable.`);
@@ -31,7 +31,7 @@ function requireEnv(name: string): string {
 }
 
 function getFramesPerLambda(): number {
-  const rawValue = process.env.REMOTION_FRAMES_PER_LAMBDA;
+  const rawValue = process.env.REMOTION_FRAMES_PER_LAMBDA?.trim();
 
   if (!rawValue) {
     return DEFAULT_FRAMES_PER_LAMBDA;

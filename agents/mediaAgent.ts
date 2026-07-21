@@ -11,11 +11,13 @@ const REPLICATE_MAX_ATTEMPTS = 3;
 const DEFAULT_TTS_SPEED = 0.88;
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "placeholder-openai-api-key",
+  apiKey: process.env.OPENAI_API_KEY?.trim() || "placeholder-openai-api-key",
 });
 
 const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN || "placeholder-replicate-api-token",
+  auth:
+    process.env.REPLICATE_API_TOKEN?.trim() ||
+    "placeholder-replicate-api-token",
   useFileOutput: false,
 });
 
@@ -49,7 +51,7 @@ function getRetryAfterMs(error: unknown): number | null {
 }
 
 function getTtsSpeed(): number {
-  const rawValue = process.env.TTS_SPEED;
+  const rawValue = process.env.TTS_SPEED?.trim();
 
   if (!rawValue) {
     return DEFAULT_TTS_SPEED;
@@ -71,7 +73,9 @@ function isRateLimitError(error: unknown): boolean {
 }
 
 function getReplicateImageModel(): ReplicateModelIdentifier {
-  const model = process.env.REPLICATE_IMAGE_MODEL || DEFAULT_REPLICATE_IMAGE_MODEL;
+  const model =
+    process.env.REPLICATE_IMAGE_MODEL?.trim() ||
+    DEFAULT_REPLICATE_IMAGE_MODEL;
 
   if (!model.includes("/")) {
     throw new Error("REPLICATE_IMAGE_MODEL must use owner/model or owner/model:version format.");

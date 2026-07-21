@@ -44,7 +44,7 @@ function getUtcDayStartFromDate(date: Date) {
 }
 
 function getScheduleTimeZone() {
-  return process.env.DAILY_SCHEDULE_TIME_ZONE || DEFAULT_SCHEDULE_TIME_ZONE;
+  return process.env.DAILY_SCHEDULE_TIME_ZONE?.trim() || DEFAULT_SCHEDULE_TIME_ZONE;
 }
 
 function getScheduleConfig(request: Request) {
@@ -192,7 +192,7 @@ function getScheduledAt(
 }
 
 function isCronAuthorized(request: Request) {
-  const cronSecret = process.env.CRON_SECRET;
+  const cronSecret = process.env.CRON_SECRET?.trim();
 
   if (!cronSecret) {
     return true;

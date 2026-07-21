@@ -21,7 +21,7 @@ const metricPayloadSchema = z.object({
 });
 
 function isAuthorized(request: Request) {
-  const ingestSecret = process.env.METRICS_INGEST_SECRET;
+  const ingestSecret = process.env.METRICS_INGEST_SECRET?.trim();
 
   if (!ingestSecret) {
     return true;

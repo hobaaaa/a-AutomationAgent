@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "placeholder-openai-api-key",
+  apiKey: process.env.OPENAI_API_KEY?.trim() || "placeholder-openai-api-key",
 });
 
 export type GeneratedScene = {

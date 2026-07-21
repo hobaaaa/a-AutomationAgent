@@ -10,7 +10,7 @@ export async function sendToPublishWebhook(
   }
 ): Promise<boolean> {
   try {
-    const webhookUrl = process.env.MAKE_PUBLISH_WEBHOOK_URL;
+    const webhookUrl = process.env.MAKE_PUBLISH_WEBHOOK_URL?.trim();
 
     if (!webhookUrl) {
       throw new Error("Missing MAKE_PUBLISH_WEBHOOK_URL environment variable.");

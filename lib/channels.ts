@@ -40,7 +40,7 @@ function isValidChannelConfig(value: unknown): value is ChannelConfig {
 }
 
 export function getDailyChannels(): ChannelConfig[] {
-  const rawValue = process.env.DAILY_CHANNELS_JSON;
+  const rawValue = process.env.DAILY_CHANNELS_JSON?.trim();
 
   if (!rawValue) {
     return DEFAULT_CHANNELS;

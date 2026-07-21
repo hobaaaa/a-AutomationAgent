@@ -47,7 +47,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 function isCronAuthorized(request: Request) {
-  const cronSecret = process.env.CRON_SECRET;
+  const cronSecret = process.env.CRON_SECRET?.trim();
 
   if (!cronSecret) {
     return true;
