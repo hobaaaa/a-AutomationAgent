@@ -14,6 +14,10 @@ const RENDER_START_MAX_ATTEMPTS = 4;
 const RENDER_START_RETRY_DELAY_MS = 60_000;
 const RENDER_JOB_MAX_ATTEMPTS = 3;
 const DEFAULT_FRAMES_PER_LAMBDA = 300;
+const DEFAULT_RENDER_WIDTH = 720;
+const DEFAULT_RENDER_HEIGHT = 1280;
+const DEFAULT_RENDER_CRF = 30;
+const DEFAULT_RENDER_AUDIO_BITRATE = "96k";
 const SUPABASE_UPLOAD_MAX_ATTEMPTS = 4;
 const SUPABASE_UPLOAD_RETRY_DELAY_MS = 10_000;
 const FPS = 30;
@@ -54,6 +58,52 @@ function getFramesPerLambda(): number {
   }
 
   return framesPerLambda;
+}
+
+function getOptionalPositiveIntegerEnv(name: string): number | null {
+  const rawValue = process.env[name]?.trim();
+
+  if (!rawValue) {
+    return null;
+  }
+
+  const value = Number(rawValue);
+
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`${name} must be a positive integer.`);
+  }
+
+  return value;
+}
+
+function getRenderWidth() {
+  return (
+    getOptionalPositiveIntegerEnv("REMOTION_FORCE_WIDTH") ??
+    DEFAULT_RENDER_WIDTH
+  );
+}
+
+function getRenderHeight() {
+  return (
+    getOptionalPositiveIntegerEnv("REMOTION_FORCE_HEIGHT") ??
+    DEFAULT_RENDER_HEIGHT
+  );
+}
+
+function getRenderCrf() {
+  const crf = getOptionalPositiveIntegerEnv("REMOTION_CRF") ?? DEFAULT_RENDER_CRF;
+
+  if (crf > 51) {
+    throw new Error("REMOTION_CRF must be between 1 and 51.");
+  }
+
+  return crf;
+}
+
+function getRenderAudioBitrate() {
+  return (
+    process.env.REMOTION_AUDIO_BITRATE?.trim() || DEFAULT_RENDER_AUDIO_BITRATE
+  );
 }
 
 function getForcedDurationInFrames(inputProps: Record<string, unknown>) {
@@ -170,14 +220,22 @@ function isSupabaseObjectSizeLimitError(error: unknown): boolean {
 }
 
 async function startRenderOnLambda({
+  audioBitrate,
+  crf,
   functionName,
   framesPerLambda,
+  forceHeight,
+  forceWidth,
   inputProps,
   region,
   serveUrl,
 }: {
+  audioBitrate: string;
+  crf: number;
   functionName: string;
   framesPerLambda: number;
+  forceHeight: number;
+  forceWidth: number;
   inputProps: Record<string, unknown>;
   region: AwsRegion;
   serveUrl: string;
@@ -187,10 +245,14 @@ async function startRenderOnLambda({
   for (let attempt = 1; attempt <= RENDER_START_MAX_ATTEMPTS; attempt += 1) {
     try {
       return await renderMediaOnLambda({
+        audioBitrate,
         codec: "h264",
         composition: COMPOSITION_ID,
+        crf,
         framesPerLambda,
+        forceHeight,
         forceDurationInFrames,
+        forceWidth,
         functionName,
         inputProps,
         region,
@@ -236,11 +298,19 @@ export async function renderVideoOnLambda(
     const functionName = requireEnv("REMOTION_AWS_FUNCTION_NAME");
     const serveUrl = requireEnv(REMOTION_SERVE_URL_ENV);
     const framesPerLambda = getFramesPerLambda();
+    const forceWidth = getRenderWidth();
+    const forceHeight = getRenderHeight();
+    const crf = getRenderCrf();
+    const audioBitrate = getRenderAudioBitrate();
     const forceDurationInFrames = getForcedDurationInFrames(inputProps);
 
     console.log("Starting Remotion Lambda render", {
       videoId,
       framesPerLambda,
+      forceWidth,
+      forceHeight,
+      crf,
+      audioBitrate,
       forceDurationInFrames,
       audioDurationSeconds: inputProps.audioDurationSeconds,
       region,
@@ -253,7 +323,11 @@ export async function renderVideoOnLambda(
       renderAttempt += 1
     ) {
       const render = await startRenderOnLambda({
+        audioBitrate,
+        crf,
         framesPerLambda,
+        forceHeight,
+        forceWidth,
         functionName,
         inputProps,
         region,

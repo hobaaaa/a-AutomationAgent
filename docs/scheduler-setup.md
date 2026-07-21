@@ -69,7 +69,11 @@ Add every runtime variable used for generation and publishing to GitHub reposito
 - `OPENAI_API_KEY`
 - `REMOTION_AWS_FUNCTION_NAME`
 - `REMOTION_AWS_REGION`
+- `REMOTION_AUDIO_BITRATE` optional; defaults to `96k`
+- `REMOTION_CRF` optional; defaults to `30`
 - `REMOTION_FRAMES_PER_LAMBDA`
+- `REMOTION_FORCE_HEIGHT` optional; defaults to `1280`
+- `REMOTION_FORCE_WIDTH` optional; defaults to `720`
 - `REMOTION_SERVE_URL`
 - `REPLICATE_API_TOKEN`
 - `REPLICATE_IMAGE_MODEL` optional; defaults to the pinned Flux Schnell version
