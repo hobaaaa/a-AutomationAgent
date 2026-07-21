@@ -48,6 +48,12 @@ alter table public.videos
 alter table public.videos
   add column if not exists scheduled_at timestamptz;
 
+alter table public.videos
+  add column if not exists title text;
+
+alter table public.videos
+  add column if not exists description text;
+
 alter table public.video_platform_metrics
   add column if not exists channel_key text;
 
