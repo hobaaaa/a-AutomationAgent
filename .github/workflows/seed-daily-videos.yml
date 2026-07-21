@@ -1,8 +1,6 @@
 name: Seed daily videos
 
 on:
-  schedule:
-    - cron: "15 12 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -22,7 +20,7 @@ jobs:
             --write-out "%{http_code}" \
             --request GET \
             --header "Authorization: Bearer $CRON_SECRET" \
-            "$APP_BASE_URL/api/cron/seed?timeZone=Europe/Istanbul&firstRunHourLocal=15&firstRunMinuteLocal=15&channelSpacingMinutes=60")"
+            "$APP_BASE_URL/api/cron/seed?timeZone=America/New_York&firstRunHourLocal=11&firstRunMinuteLocal=0&channelSpacingMinutes=60")"
           echo "HTTP status: $status_code"
           cat "$response_file"
           test "$status_code" -ge 200 -a "$status_code" -lt 300
